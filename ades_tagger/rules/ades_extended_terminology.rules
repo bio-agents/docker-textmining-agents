@@ -1,0 +1,60 @@
+$STATICAL_SYMBOL = "/<|>|=|<=|>=|!=|<>|≤|/"
+$STATICAL_SEP_KEY = "/and|or|to|,/"
+$PARENTESIS = "/-LRB-|-RRB-/"
+$PERCENTAJE = "/%/"
+$DOSE_SEP = "/,|-|and|or|to/"
+$GROUP_SEP = "/,|-|and|or|to/"
+$NEGATION_WORD="/no|not|neither|none/"
+
+ENV.defaults["stage"] = 1
+
+//Treatment related triggers 
+
+//Basic terminology first from NER
+
+{([{ ner:NO_TREATMENT_RELATED_EFFECT_DETECTED }]+) => "NO_TREATMENT_RELATED_EFFECT_DETECTED" }
+{([{ ner:TREATMENT_RELATED_EFFECT_DETECTED }]+) => "TREATMENT_RELATED_EFFECT_DETECTED" }
+
+//Negation trigger from NER 
+
+{ ( [{ ner:NEGATION_KEYWORD; tag:/DT|NN.*|RB|CC|IN/ }]  [!{ word:/:/}]* ([{ ner:TREATMENT_RELATED_EFFECT_DETECTED }]+)) => "NO_TREATMENT_RELATED_EFFECT_DETECTED" }
+
+ENV.defaults["stage"] = 2
+
+
+//STATICAL SIGNIFICANCE
+{(/p/ $STATICAL_SYMBOL ([{ner:NUMBER }])) => "STATICAL_SIGNIFICANCE" }
+{( (/p/ $STATICAL_SYMBOL ([{ner:NUMBER }])) $STATICAL_SEP_KEY (/p/ $STATICAL_SYMBOL ([{ner:NUMBER }]))   ) => "STATICAL_SIGNIFICANCE" }
+{ (( [/\**/] $PARENTESIS /p/ $STATICAL_SYMBOL ([{ner:NUMBER }]) ) $PARENTESIS ) => "STATICAL_SIGNIFICANCE" }
+{ (( [/\**/] $PARENTESIS /p/ $STATICAL_SYMBOL ([{ner:NUMBER }]) ) $PARENTESIS $STATICAL_SEP_KEY* ( [/\**/] $PARENTESIS /p/ $STATICAL_SYMBOL ([{ner:NUMBER }]) ) $PARENTESIS ) => "STATICAL_SIGNIFICANCE" }
+{(([{word::IS_NUM}]) $PERCENTAJE $PARENTESIS /p/ $STATICAL_SYMBOL ([{ner:NUMBER }]) $PARENTESIS ) => "STATICAL_SIGNIFICANCE" }
+{(([{word::IS_NUM}]) $PERCENTAJE $PARENTESIS /p/ $STATICAL_SYMBOL ([{ner:NUMBER }]) $PARENTESIS $STATICAL_SEP_KEY ([{word::IS_NUM}]) $PERCENTAJE $PARENTESIS /p/ $STATICAL_SYMBOL ([{ner:NUMBER }]) $PARENTESIS ) => "STATICAL_SIGNIFICANCE" }
+{( ([{ner:NUMBER }]) /\%/ /\(/ /p/ $STATICAL_SYMBOL ([{ner:NUMBER }]) /\)/ ) => "STATICAL_SIGNIFICANCE" }
+
+//DOSE_QUANTITY
+{(( ([{ner:NUMBER} | {word::IS_NUM}] [{ word:$DOSE_SEP }])* [{ner:NUMBER} | {word::IS_NUM}] [{word:$DOSE_SEP}]* [{ner:DOSE_UNIT} | {ner:DOSE_UNIT_MANUAL} | word:/\D+\/\D+/ | word:/\D+\/\D+\/\D+/] )) => "DOSE" } 
+
+//DOSE_DURATION
+//{( /for/  ([{word::IS_NUM} | {ner:NUMBER}]) ([{ner:DURATION}])) => "DOSE_DURATION" }
+//{( ([{word::IS_NUM} | {ner:NUMBER}]) ([{ner:DURATION}]+)) => "DOSE_DURATION" }
+//{( ([{ner:DURATION}]+) ([{word::IS_NUM} | {ner:NUMBER}])) => "DOSE_DURATION" }
+
+
+//DOSE_FREQUENCY
+//{( ([{ner:DATE}]) ([{ner:DURATION}]+)) => "DOSE_FREQUENCY" }
+//{( ([{ner:SET}])) => "DOSE_FREQUENCY" }
+
+//STUDY_DAY_FINDING
+//{( /on/ ([{ner:DURATION}]) ([{word::IS_NUM} | {ner:NUMBER}])) => "STUDY_DAY_FINDING" }
+{( /on|at/ ([{ner:DURATION}]) ([{word::IS_NUM} | {ner:NUMBER}])   ([{ word:$DOSE_SEP }] ([{word::IS_NUM} | {ner:NUMBER}]))* ) => "STUDY_DAY_FINDING" } 
+
+
+#GROUP RULES
+{ (([{ word:/group[s]*/; tag:/NN.*/}] ([{ner:NUMBER } | {word::IS_NUM} | {word:/^[mdclxvi]+$/}] [{ word:$DOSE_SEP }])* ([{ner:NUMBER } | {word::IS_NUM} | {word:/^[mdclxvi]+$/}]) ) ) => "GROUP" }
+//ojo revisar el NN 
+{ ((  [{tag:/JJ.*/} ] [{tag:/JJ.*|NN.*/} ]  [{ word:/group[s]*/; tag:/NN.*/}]  ) ) => "GROUP" }
+{ ((  [{tag:/JJ.*|NN.*/} ]  [{ word:/group[s]*/; tag:/NN.*/}]  ) ) => "GROUP" }
+
+#SEVERITY
+{ (( [{ word:/severity|severe/}]* [{ word:/grade/}] [{ner:NUMBER}] ) ) => "SEVERITY" }
+{ (( [{ word:/severity|severe/}] [{ner:NUMBER}] ) ) => "SEVERITY" }

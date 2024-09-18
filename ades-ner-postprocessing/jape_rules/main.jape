@@ -1,0 +1,14 @@
+MultiPhase: Main
+Phases:
+remove_dnorm_false_positives
+stop_words
+omim_clean
+clean_short_words
+merge_annotations
+merge_hepatotoxicity
+merge_livermarker
+negation_finding
+remove_study_domain
+remove_manifestation_findings_false_positive_dose
+remove_manifestation_findings_false_positive_no_finding
+study_testcd_manifestation_finding

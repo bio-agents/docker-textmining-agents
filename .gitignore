@@ -1,0 +1,14 @@
+.*
+!/.gitignore
+*.pyc
+*.class
+*.settings
+*.project
+target/
+*.log
+*.classpath
+*.pydevproject*
+work/
+*nextflow.log*
+nextflow/
+./nextflow/
